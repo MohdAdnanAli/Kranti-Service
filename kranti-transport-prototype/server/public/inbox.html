@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kranti demo phone inbox</title><link rel="stylesheet" href="/css/kranti.css"></head>
+<body><div class="win"><div class="titlebar"><span class="dot"></span><span>Demo phone inbox</span><span class="sub">stands in for real SMS</span></div>
+<div class="body"><div class="demo"><b>DEMO ONLY.</b> Real Kranti sends SMS and email. Here, every message lands in this list so you can click the links and read the codes as a requester or other party would.</div>
+<div class="field"><label for="phone">Show messages for one number or email (leave empty for all)</label><input id="phone" placeholder="e.g. 9000044444" inputmode="numeric"></div>
+<div id="list"></div></div><div class="status">Refreshes every 3 seconds</div></div>
+<script src="/js/common.js"></script>
+<script>
+const linkify = t => t.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+async function refresh() {
+  const p = $('#phone').value.trim();
+  const r = await call('GET', '/api/demo/inbox' + (p ? '?phone=' + encodeURIComponent(p) : ''));
+  const box = $('#list'); box.innerHTML = '';
+  if (!r.data.length) box.append(h('p', { class: 'muted' }, 'No messages yet.'));
+  for (const m of r.data) {
+    const kind = m.kind === 'code' ? 'code' : m.kind === 'email' ? 'email' : '';
+    const label = m.kind === 'email' ? 'Email (recorded, not really sent)' : m.kind === 'code' ? 'SMS: one-time code' : 'SMS: link';
+    const el = h('div', { class: 'bubble ' + kind }); el.append(h('div', { class: 'meta' }, `${label} · to ${m.to_phone} · ${fmtDateTime(m.created_at)}`));
+    const body = h('div', {}); body.innerHTML = linkify(m.body.replace(/&/g, '&amp;').replace(/</g, '&lt;')); el.append(body); box.append(el);
+  }
+}
+$('#phone').addEventListener('input', refresh); refresh(); setInterval(refresh, 3000);
+</script></body></html>

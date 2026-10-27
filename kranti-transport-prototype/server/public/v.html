@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kranti: verify a receipt</title><link rel="stylesheet" href="/css/kranti.css"></head>
+<body><div class="win"><div class="titlebar"><span class="dot"></span><span>Verify a receipt</span></div><div class="body"><div id="app"><p class="muted">Checking...</p></div></div>
+<div class="status">Kranti transport prototype · verify page · no login needed</div></div>
+<script src="/js/common.js"></script>
+<script>
+(async () => {
+  const [, , akrn, seal] = location.pathname.split('/');
+  const r = await call('GET', `/api/public/v/${akrn}/${seal}${location.search}`);
+  const app = $('#app'); app.innerHTML = '';
+  if (!r.ok) { app.append(h('div', { class: 'banner bad' }, r.data.error || 'No receipt matches this address.')); return; }
+  const d = r.data, rec = d.record, ok = d.matches && d.link_check !== false;
+  app.append(h('div', { class: 'banner ' + (ok ? 'ok' : 'bad') }, ok ? 'The stored record matches its fingerprint.' : 'WARNING: this does not match the sealed record.'));
+  if (d.link_check === false) app.append(h('div', { class: 'banner bad' }, 'The fingerprint in the link does not match. The QR or link may have been changed.'));
+  app.append(h('h1', {}, `GDRN ${rec.akrn}`), kv([
+    ['Service', `${rec.service} · ${rec.template === 'load' ? 'Load (pick-up)' : 'Unload (drop)'}`], ['Sealed at', fmtDateTime(d.sealed_at)],
+    ['Transporter', `${rec.transporter.name} (${rec.transporter.gstin})`], ['Requester', `${rec.requester.name} (${rec.requester.gstin})`],
+    [rec.other_party.role, `${rec.other_party.name} (${rec.other_party.gstin})`], ['Code sent to', rec.evidence.code_sent_to],
+    ['Goods', `${rec.goods.description}, ${rec.goods.nos} ${rec.goods.unit || 'nos'}`], ['Vehicle and driver', `${rec.vehicle || '-'} · ${rec.driver || '-'}`],
+    ['Reference receipt', rec.reference_receipt || '-'], ['Fingerprint', d.fingerprint]]));
+  app.append(h('p', { class: 'small muted' }, 'This prototype page shows the sealed record and checks its fingerprint. It makes no statement about legal standing. There is no PDF or QR in the prototype.'));
+})();
+</script></body></html>

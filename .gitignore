@@ -1,0 +1,47 @@
+# Flutter / Dart
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+build/
+coverage/
+.flutter-plugins
+.flutter-plugins-dependencies
+.fvm/
+
+# IDE / editor
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# OS
+*.log
+
+# Project artifacts
+*.apk
+*.aab
+*.ipa
+*.dSYM/
+local.properties
+
+# Generated / temp
+*.tmp
+*.temp
+
+# Large source zips
+*.zip
+
+# Node server stuff (if included later)
+node_modules/
+.npm/
+
+# GitHub / private keys
+*.pem
+*.key
+*.crt
+
+# Local env
+.env
+.env.*

@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kranti: your request</title><link rel="stylesheet" href="/css/kranti.css"></head>
+<body><div class="win"><div id="tb"></div><div class="body"><div id="app"><p class="muted">Loading your request...</p></div></div><div class="status">Kranti transport prototype · requester page · no login needed</div></div>
+<script src="/js/common.js"></script>
+<script>
+const token = location.pathname.split('/')[2];
+const base = '/api/public/r/' + token;
+let S = null, off = 0, secs = [], values = {};
+const unitOptions = ['', 'bags', 'boxes', 'pieces', 'kg', 'ton', 'other'];
+
+function defs() {
+  const o = S.labels.other_role, low = o.toLowerCase();
+  return [
+    { id: 'you', title: '2. You (the requester)', fields: [
+      { k: 'req_alt_phone', l: 'Your alternate number' }, { k: 'req_email', l: 'Your email', req: 1, type: 'email' } ] },
+    { id: 'goods', title: '3. Goods', fields: [
+      { k: 'goods_desc', l: 'Goods description', req: 1 }, { k: 'goods_nos', l: 'Number of items (nos)', req: 1, type: 'number' },
+      { k: 'goods_unit', l: 'Unit', type: 'select' }, { k: 'goods_weight', l: 'Total weight (optional)' } ] },
+    { id: 'dates', title: '4. Dates (flexible windows)', fields: [
+      { k: 'lift_from', l: 'Lifting window: from', req: 1, type: 'date' }, { k: 'lift_to', l: 'Lifting window: to', req: 1, type: 'date' },
+      { k: 'deliver_from', l: 'Expected delivery: from', req: 1, type: 'date' }, { k: 'deliver_to', l: 'Expected delivery: to', req: 1, type: 'date' } ] },
+    { id: 'other', title: `5. ${o} details`, fields: [
+      { k: 'oth_gstin', l: `${o} GSTIN`, req: 1 }, { k: 'oth_name', l: `${o} name`, req: 1 }, { k: 'oth_address', l: `${o} address`, req: 1 },
+      { k: 'oth_site', l: S.labels.site, req: 1 }, { k: 'oth_phone', l: `${o} mobile number`, req: 1, type: 'tel' },
+      { k: 'oth_alt_phone', l: `${o} alternate number`, type: 'tel' }, { k: 'oth_email', l: `${o} email (optional)`, type: 'email' } ] },
+  ];
+}
+function fieldEl(f, editable) {
+  const v = values[f.k] ?? '';
+  let input;
+  if (!editable) return h('div', { class: 'field' }, h('label', {}, f.l), h('div', {}, h('b', {}, f.k === 'goods_nos' || v === '' ? (v === '' ? '-' : v) : (f.type === 'date' ? fmtDate(v) : v))));
+  if (f.type === 'select') { input = h('select', { id: f.k }, unitOptions.map(u => h('option', { value: u, selected: u === v }, u || 'Choose...'))); }
+  else input = h('input', { id: f.k, type: f.type === 'tel' || f.type === 'number' ? 'text' : (f.type || 'text'), inputmode: f.type === 'tel' || f.type === 'number' ? 'numeric' : null, value: v, autocomplete: 'off' });
+  input.addEventListener('input', () => { values[f.k] = input.value; });
+  input.addEventListener('change', () => { values[f.k] = input.value; });
+  return h('div', { class: 'field', id: 'f_' + f.k }, h('label', { for: f.k }, f.l, f.req ? h('span', { class: 'req' }, ' *') : null), input, h('div', { class: 'err', id: 'e_' + f.k }));
+}
+function showErrors(errs, ids) {
+  for (const id of ids) { const box = $('#f_' + id); if (!box) continue; box.classList.toggle('bad', !!errs[id]); $('#e_' + id).textContent = errs[id] || ''; }
+}
+function section1() {
+  const s = section('1. Transporter (read-only)', true);
+  s.body.append(kv([['Transporter', S.transporter.name], ['GSTIN', S.transporter.gstin], ['Service', S.template === 'load' ? 'Load (pick-up)' : 'Unload (drop)'], ['Request', S.code]]));
+  return s;
+}
+function render() {
+  const app = $('#app'); app.innerHTML = '';
+  const editable = S.editable;
+  $('#tb').replaceChildren(titleWin('Kranti: ' + (S.template === 'load' ? 'Load (pick-up)' : 'Unload (drop)') + ' request', S.code));
+  app.append(h('div', { id: 'banner' }));
+  secs = [];
+  const s1 = section1(); app.append(s1.el);
+  const youSec = section('2. You (the requester)', false);
+  youSec.body.append(kv([['Name', S.requester.name], ['GSTIN', S.requester.gstin], ['Mobile', S.requester.phone], ['Address', S.requester.address]]));
+  const all = defs();
+  app.append(youSec.el);
+  // the editable part of section 2 lives inside the same box
+  all.forEach((d, i) => {
+    const s = d.id === 'you' ? youSec : section(d.title, false);
+    if (d.id === 'dates') s.body.append(kv([['Order date (today, set by Kranti)', fmtDate(S.order_date)]]));
+    const box = h('div', {}); d.fields.forEach(f => box.append(fieldEl(f, editable))); s.body.append(box);
+    if (editable) {
+      const last = i === all.length - 1;
+      const btn = h('button', { class: 'primary', type: 'button' }, last ? (S.submitted ? 'Save changes' : 'Review and submit') : 'Save and continue');
+      btn.addEventListener('click', () => (last ? submit() : next(d, i, s, btn)));
+      s.body.append(h('p', {}, btn));
+    }
+    secs.push({ d, s });
+    if (d.id !== 'you') app.append(s.el);
+  });
+  if (editable) { youSec.open(); } else { youSec.open(); }
+  tick();
+}
+async function next(d, i, s, btn) {
+  const ids = d.fields.map(f => f.k); btn.disabled = true;
+  const r = await call('POST', base + '/validate', { section: d.id, fields: values });
+  btn.disabled = false;
+  showErrors(r.data.errors || {}, ids);
+  if (r.ok && !Object.keys(r.data.errors || {}).length) { s.setDone(true); s.close(); secs[i + 1].s.open(); secs[i + 1].s.el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+}
+async function submit() {
+  const r = await call('POST', base + '/submit', { fields: values });
+  if (r.status === 422) {
+    const errs = r.data.errors || {};
+    secs.forEach(({ d, s }) => { const ids = d.fields.map(f => f.k); showErrors(errs, ids); const bad = ids.some(k => errs[k]); s.setDone(!bad); });
+    const first = secs.find(({ d }) => d.fields.some(f => errs[f.k])); if (first) { first.s.open(); first.s.el.scrollIntoView({ behavior: 'smooth' }); }
+    $('#banner').replaceChildren(h('div', { class: 'banner bad' }, r.data.error));
+    return;
+  }
+  if (!r.ok) { $('#banner').replaceChildren(h('div', { class: 'banner bad' }, r.data.error || 'Could not submit.')); return; }
+  await load(true);
+}
+function tick() {
+  const b = $('#banner'); if (!b) return;
+  const left = mmss(S.expires_at - (Date.now() + off));
+  const m = { created: ['info', `Please fill this request within ${left}. Sections with a tick are done.`],
+    submitted: ['warn', `Submitted. Waiting for the transporter to decide: ${left} left. You can still edit until they accept.`],
+    active: ['ok', 'Accepted by the transporter. The form is now locked.'], sealed: ['ok', 'This service has been sealed. Thank you.'],
+    denied: ['bad', 'The transporter denied this request. Please speak to them.'], expired: ['bad', 'This request has expired. Ask the transporter to send a new link.'],
+    cancelled: ['bad', 'The transporter cancelled this request.'] }[S.status] || ['info', S.status];
+  if (!b.firstChild || !b.firstChild.classList.contains('bad') || S.status !== 'created') b.replaceChildren(h('div', { class: 'banner ' + m[0] }, m[1]));
+}
+async function load(force) {
+  const r = await call('GET', base);
+  if (!r.ok) { $('#app').replaceChildren(h('div', { class: 'banner bad' }, r.data.error || 'This link is not valid or has expired.')); return; }
+  const was = S && S.editable, st = S && S.status;
+  S = r.data; off = S.now - Date.now();
+  if (!values.__init) { values = { ...S.fields, __init: 1 }; }
+  if (force || !was || st !== S.status || was !== S.editable) { if (force) values = { ...S.fields, __init: 1 }; render(); } else tick();
+}
+call('POST', base + '/seen').catch(() => {});
+load(true); setInterval(() => load(false), 5000); setInterval(() => { if (S) tick(); }, 1000);
+</script></body></html>

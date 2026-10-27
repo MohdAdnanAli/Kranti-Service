@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kranti: confirm the handover</title><link rel="stylesheet" href="/css/kranti.css"></head>
+<body><div class="win"><div id="tb"></div><div class="body"><div id="app"><p class="muted">Loading...</p></div></div><div class="status">Kranti transport prototype · confirmation page · no login needed</div></div>
+<script src="/js/common.js"></script>
+<script>
+const token = location.pathname.split('/')[2];
+const base = '/api/public/o/' + token;
+let S = null, off = 0, msg = null;
+function render() {
+  const app = $('#app'); app.innerHTML = '';
+  const load = S.template === 'load';
+  $('#tb').replaceChildren(titleWin('Kranti: confirm the ' + (load ? 'pick-up' : 'drop'), S.code));
+  app.append(h('p', {}, `${S.transporter.name} has asked you to confirm the ${load ? 'pick-up (load)' : 'drop (unload)'} below. You can only read the details here.`));
+  const a = section('What you are confirming', true);
+  a.body.append(kv([['Goods', S.goods.description], ['Items (nos)', S.goods.nos], ['Unit', S.goods.unit], ['Weight', S.goods.weight],
+    ['Vehicle', [S.transport.vehicle, S.transport.vehicle_type].filter(Boolean).join(' · ')], ['Driver', S.transport.driver], ['Reference receipt', S.transport.reference_receipt]]));
+  const b = section('Parties', false);
+  b.body.append(kv([['Transporter', S.transporter.name], ['Transporter GSTIN', S.transporter.gstin], ['Requester', S.requester.name], ['Requester GSTIN', S.requester.gstin],
+    [S.labels.other_role, S.other.name], [S.labels.other_role + ' GSTIN', S.other.gstin]]));
+  const c = section('Dates', false);
+  c.body.append(kv([['Order date', fmtDate(S.order_date)], ['Lifting window', `${fmtDate(S.windows.lift_from)} to ${fmtDate(S.windows.lift_to)}`], ['Expected delivery', `${fmtDate(S.windows.deliver_from)} to ${fmtDate(S.windows.deliver_to)}`]]));
+  app.append(a.el, b.el, c.el, h('div', { id: 'action' }));
+  action();
+}
+function action() {
+  const box = $('#action'); if (!box) return; box.innerHTML = '';
+  const load = S.template === 'load', verb = load ? 'handed over' : 'received';
+  if (S.sealed || S.status === 'sealed') { box.append(h('div', { class: 'banner ok' }, 'This service is sealed. A receipt has been sent to everyone with an email address on file.')); return; }
+  if (S.status !== 'active' || S.flag === 'dormant') { box.append(h('div', { class: 'banner warn' }, 'This order is not ready for confirmation (' + S.status + (S.flag ? ', ' + S.flag : '') + ').')); return; }
+  const wait = Math.max(0, S.can_request_at - (Date.now() + off));
+  if (msg) box.append(h('div', { class: 'banner ' + msg.kind }, msg.text));
+  if (S.code_requested) {
+    box.append(h('div', { class: 'banner info' }, `A code was sent to the phone ending ${S.sent_to.slice(-4)}. Read it out to the transporter only if the goods were ${verb}. It works for 10 minutes (${mmss(S.code_expires_at - (Date.now() + off))} left).`));
+  }
+  const btn = h('button', { class: 'primary big', type: 'button', disabled: wait > 0 }, wait > 0 ? `Get a new code in ${Math.ceil(wait / 1000)} s` : (S.code_requested ? 'Send me a new code' : `I have ${verb} this. Get my code.`));
+  btn.addEventListener('click', async () => {
+    btn.disabled = true; const r = await call('POST', base + '/code');
+    msg = r.ok ? { kind: 'ok', text: `Code sent to the phone ending ${r.data.sent_to.slice(-4)}.` } : { kind: 'bad', text: r.data.error || 'Could not send a code.' };
+    await load_(); });
+  box.append(btn, h('p', { class: 'small muted' }, `Only read the code out if the goods were ${verb}. Reading it out seals the receipt. (Draft wording, to be settled with the legal team.)`));
+}
+async function load_() {
+  const r = await call('GET', base);
+  if (!r.ok) { $('#app').replaceChildren(h('div', { class: 'banner bad' }, r.data.error || 'This link is not valid or has expired.')); return; }
+  const first = !S; S = r.data; off = S.now - Date.now(); if (first) render(); else action();
+}
+call('POST', base + '/seen').catch(() => {});
+load_(); setInterval(load_, 5000); setInterval(() => { if (S) action(); }, 1000);
+</script></body></html>
