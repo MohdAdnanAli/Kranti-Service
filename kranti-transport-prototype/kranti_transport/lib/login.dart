@@ -99,6 +99,15 @@ class _LoginScreenState extends State<LoginScreen> {
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
                               const SizedBox(height: 6),
+                              Center(
+                                child: Image.asset(
+                                  'Kranti Logo/kranti_mark_COLOUR_transparent.png',
+                                  width: 72,
+                                  height: 72,
+                                  fit: BoxFit.contain,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
                               const Text(
                                 'Kranti',
                                 style: TextStyle(

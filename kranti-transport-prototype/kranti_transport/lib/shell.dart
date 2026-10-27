@@ -133,12 +133,12 @@ class _ShellState extends State<Shell> {
 
   @override
   Widget build(BuildContext context) {
-    final navItems = <({String label, String asset, int index})>[
-      (label: 'Dashboard', asset: 'Kranti Logo/kranti_mark_BW_transparent.png', index: 0),
-      (label: 'Profile', asset: 'Kranti Logo/kranti_mark_BW_transparent.png', index: 1),
-      (label: 'Create', asset: 'Kranti Logo/kranti_mark_BW_transparent.png', index: 2),
-      (label: 'Orders', asset: 'Kranti Logo/kranti_mark_BW_transparent.png', index: 3),
-      (label: 'Demo inbox', asset: 'Kranti Logo/kranti_mark_BW_transparent.png', index: 4),
+    final navItems = <({String label, IconData icon, int index})>[
+      (label: 'Dashboard', icon: Icons.dashboard_outlined, index: 0),
+      (label: 'Profile', icon: Icons.person_outline, index: 1),
+      (label: 'Create', icon: Icons.add_circle_outline, index: 2),
+      (label: 'Orders', icon: Icons.receipt_long_outlined, index: 3),
+      (label: 'Demo inbox', icon: Icons.inbox_outlined, index: 4),
     ];
 
     return Scaffold(
@@ -218,15 +218,10 @@ class _ShellState extends State<Shell> {
                                   color: tab == item.index ? K.titleA : Colors.transparent,
                                   borderRadius: BorderRadius.circular(18),
                                 ),
-                                child: Image.asset(
-                                  tab == item.index
-                                      ? 'Kranti Logo/kranti_mark_COLOUR_transparent.png'
-                                      : item.asset,
-                                  width: 22,
-                                  height: 22,
-                                  fit: BoxFit.contain,
-                                  color: tab == item.index ? null : K.titleA,
-                                  colorBlendMode: tab == item.index ? null : BlendMode.srcIn,
+                                child: Icon(
+                                  item.icon,
+                                  size: 22,
+                                  color: tab == item.index ? Colors.white : K.titleA,
                                 ),
                               ),
                             ),

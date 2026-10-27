@@ -76,22 +76,25 @@ class DemoSecurityOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return IgnorePointer(
-      child: Positioned.fill(
-        child: Transform.rotate(
-          angle: -0.45,
-          child: Center(
-            child: Text(
-              'PRE-DEV DEMO\nNO SCREENSHOTS\nPRIVATE DATA ONLY',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 2,
-                color: Colors.white.withValues(alpha: 0.18),
-                shadows: const [
-                  Shadow(color: Color(0x33000000), blurRadius: 12),
-                ],
+    return Positioned.fill(
+      child: IgnorePointer(
+        child: Opacity(
+          opacity: 0.08,
+          child: Transform.rotate(
+            angle: -0.42,
+            child: Center(
+              child: Text(
+                'PRE-DEV DEMO\nNO SCREENSHOTS\nPRIVATE DATA ONLY',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 2,
+                  color: const Color(0xFF0B3A5C).withValues(alpha: 0.72),
+                  shadows: const [
+                    Shadow(color: Color(0x33000000), blurRadius: 12),
+                  ],
+                ),
               ),
             ),
           ),
