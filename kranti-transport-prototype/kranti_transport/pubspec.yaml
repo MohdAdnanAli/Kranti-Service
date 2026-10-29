@@ -17,5 +17,5 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - Kranti Logo/kranti_mark_COLOUR_transparent.png
-    - Kranti Logo/kranti_mark_BW_transparent.png
+    - assets/kranti_mark_COLOUR_transparent.png
+    - assets/kranti_mark_BW_transparent.png

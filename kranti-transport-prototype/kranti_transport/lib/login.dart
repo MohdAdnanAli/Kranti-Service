@@ -4,6 +4,8 @@ import 'api.dart';
 import 'ui.dart';
 
 class LoginScreen extends StatefulWidget {
+  static const demoServerUrl = 'http://localhost:4180';
+
   final void Function(
     Api api,
     Map<String, dynamic> user,
@@ -16,7 +18,7 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final server = TextEditingController(text: 'http://localhost:4180');
+  final server = TextEditingController(text: LoginScreen.demoServerUrl);
   final email = TextEditingController(text: 'adnan@xyz.com');
   final pass = TextEditingController(text: 'Password@123');
   String? error;
@@ -101,7 +103,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               const SizedBox(height: 6),
                               Center(
                                 child: Image.asset(
-                                  'Kranti Logo/kranti_mark_COLOUR_transparent.png',
+                                  'assets/kranti_mark_COLOUR_transparent.png',
                                   width: 72,
                                   height: 72,
                                   fit: BoxFit.contain,
@@ -135,14 +137,35 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
                               ),
                               const SizedBox(height: 10),
-                              labeledField(
-                                'Server address',
-                                server,
-                                type: TextInputType.url,
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: labeledField(
+                                      'Server address',
+                                      server,
+                                      type: TextInputType.url,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  TextButton(
+                                    onPressed: () => setState(() {
+                                      server.text = LoginScreen.demoServerUrl;
+                                    }),
+                                    child: const Text('Use direct link'),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              SelectableText(
+                                LoginScreen.demoServerUrl,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: K.titleA,
+                                  fontWeight: FontWeight.w700,
+                                ),
                               ),
                               const Text(
-                                'Use http://localhost:4180 on this computer or in a browser, http://10.0.2.2:4180 in an Android emulator, '
-                                'or your computer\'s network address (for example http://192.168.1.20:4180) on a real phone.',
+                                'Direct demo link: http://localhost:4180. Use it by default; switch to your LAN IP only when testing externally.',
                                 style: TextStyle(fontSize: 12, color: Colors.black54),
                               ),
                               labeledField(
@@ -169,7 +192,6 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
           ),
-          const DemoSecurityOverlay(),
         ],
       ),
     );

@@ -8,6 +8,87 @@ import 'ui.dart';
 String templateLabel(dynamic t) =>
     t == 'load' ? 'Load (pick-up)' : 'Unload (drop)';
 
+List<Map<String, dynamic>> goodsRowsForOrder(Map<String, dynamic> o) {
+  final raw = o['goods_rows'];
+  if (raw is List && raw.isNotEmpty) {
+    return raw
+        .map((e) => Map<String, dynamic>.from(e as Map))
+        .toList()
+        .asMap()
+        .entries
+        .map((entry) {
+          final idx = entry.key + 1;
+          final row = entry.value;
+          final itemCount = int.tryParse((row['number_of_items'] ?? row['items'] ?? '1').toString()) ?? 1;
+          final nos = int.tryParse((row['nos'] ?? row['qty'] ?? '1').toString()) ?? 1;
+          return {
+            'serial': idx,
+            'goods_desc': row['goods_desc'] ?? row['description'] ?? 'Goods',
+            'number_of_items': itemCount,
+            'nos': nos,
+            'total_nos': itemCount * nos,
+          };
+        })
+        .toList();
+  }
+
+  final desc = s(o['goods_desc']);
+  if (desc == '-') {
+    return const [];
+  }
+  final itemCount = int.tryParse(s(o['goods_nos']).replaceAll(RegExp(r'[^0-9]'), ''));
+  final total = itemCount ?? 1;
+  return [
+    {
+      'serial': 1,
+      'goods_desc': desc,
+      'number_of_items': total,
+      'nos': 1,
+      'total_nos': total,
+    },
+  ];
+}
+
+class GoodsTable extends StatelessWidget {
+  final List<Map<String, dynamic>> rows;
+  const GoodsTable({super.key, required this.rows});
+
+  @override
+  Widget build(BuildContext context) {
+    if (rows.isEmpty) {
+      return const Text('No goods details yet.');
+    }
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: DataTable(
+        columnSpacing: 16,
+        headingRowColor: WidgetStateProperty.all(const Color(0xFFEAF4F7)),
+        columns: const [
+          DataColumn(label: Text('S. No')),
+          DataColumn(label: Text('Goods description')),
+          DataColumn(label: Text('No. of items')),
+          DataColumn(label: Text('Nos')),
+          DataColumn(label: Text('Total nos')),
+        ],
+        rows: rows
+            .map(
+              (row) => DataRow(
+                cells: [
+                  DataCell(Text('${row['serial']}')),
+                  DataCell(Text(s(row['goods_desc']))),
+                  DataCell(Text('${row['number_of_items']}')),
+                  DataCell(Text('${row['nos']}')),
+                  DataCell(Text('${row['total_nos']}')),
+                ],
+              ),
+            )
+            .toList(),
+      ),
+    );
+  }
+}
+
 class OrderRow extends StatelessWidget {
   final Map<String, dynamic> o;
   final VoidCallback onOpen;
@@ -524,26 +605,36 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             initiallyOpen: status == 'submitted',
             child: !submitted
                 ? const Text('The requester has not submitted the form yet.')
-                : KV([
-                    ['Requester', s(o['req_name'])],
-                    ['GSTIN', s(o['req_gstin'])],
-                    ['Mobile', s(o['req_phone'])],
-                    ['Alternate number', s(o['req_alt_phone'])],
-                    ['Email', s(o['req_email'])],
-                    ['Goods', s(o['goods_desc'])],
-                    ['Items (nos)', s(o['goods_nos'])],
-                    ['Unit', s(o['goods_unit'])],
-                    ['Weight', s(o['goods_weight'])],
-                    ['Order date', fmtDate(o['order_date'])],
-                    [
-                      'Lifting window',
-                      '${fmtDate(o['lift_from'])} to ${fmtDate(o['lift_to'])}',
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      KV([
+                        ['Requester', s(o['req_name'])],
+                        ['GSTIN', s(o['req_gstin'])],
+                        ['Mobile', s(o['req_phone'])],
+                        ['Alternate number', s(o['req_alt_phone'])],
+                        ['Email', s(o['req_email'])],
+                        ['Transporter order date', fmtDate(o['order_date'])],
+                        [
+                          'Transporter lifting window',
+                          '${fmtDate(o['lift_from'])} to ${fmtDate(o['lift_to'])}',
+                        ],
+                        [
+                          'Transporter expected delivery',
+                          '${fmtDate(o['deliver_from'])} to ${fmtDate(o['deliver_to'])}',
+                        ],
+                        ['Unit', s(o['goods_unit'])],
+                        ['Weight', s(o['goods_weight'])],
+                      ]),
+                      const SizedBox(height: 10),
+                      const Text(
+                        'Goods detail table',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 6),
+                      GoodsTable(rows: goodsRowsForOrder(o)),
                     ],
-                    [
-                      'Expected delivery',
-                      '${fmtDate(o['deliver_from'])} to ${fmtDate(o['deliver_to'])}',
-                    ],
-                  ]),
+                  ),
           ),
           SectionPanel(
             title: '$other (other party)',
@@ -555,15 +646,15 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 else
                   KV([
                     ['Name', s(o['oth_name'])],
-                    ['GSTIN', s(o['oth_gstin'])],
                     ['Address', s(o['oth_address'])],
+                    ['GSTIN', s(o['oth_gstin'])],
+                    ['Primary party contact', s(o['oth_phone'])],
                     [
                       o['template'] == 'load'
                           ? 'Pick-up address'
                           : 'Drop address',
                       s(o['oth_site']),
                     ],
-                    ['Mobile', s(o['oth_phone'])],
                     ['Alternate number', s(o['oth_alt_phone'])],
                     ['Email', s(o['oth_email'])],
                   ]),

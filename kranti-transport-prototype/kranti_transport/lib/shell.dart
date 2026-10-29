@@ -133,12 +133,12 @@ class _ShellState extends State<Shell> {
 
   @override
   Widget build(BuildContext context) {
-    final navItems = <({String label, IconData icon, int index})>[
-      (label: 'Dashboard', icon: Icons.dashboard_outlined, index: 0),
-      (label: 'Profile', icon: Icons.person_outline, index: 1),
-      (label: 'Create', icon: Icons.add_circle_outline, index: 2),
-      (label: 'Orders', icon: Icons.receipt_long_outlined, index: 3),
-      (label: 'Demo inbox', icon: Icons.inbox_outlined, index: 4),
+    final navItems = <({String label, IconData icon, int index, bool highlight})>[
+      (label: 'Dashboard', icon: Icons.dashboard_outlined, index: 0, highlight: false),
+      (label: 'Profile', icon: Icons.person_outline, index: 1, highlight: false),
+      (label: 'Create', icon: Icons.add_circle_outlined, index: 2, highlight: true),
+      (label: 'Orders', icon: Icons.receipt_long_outlined, index: 3, highlight: false),
+      (label: 'Demo inbox', icon: Icons.inbox_outlined, index: 4, highlight: false),
     ];
 
     return Scaffold(
@@ -177,7 +177,6 @@ class _ShellState extends State<Shell> {
               ),
             ),
           ),
-          const DemoSecurityOverlay(),
           Align(
             alignment: Alignment.bottomCenter,
             child: SafeArea(
@@ -215,13 +214,17 @@ class _ShellState extends State<Shell> {
                                 width: 54,
                                 height: 54,
                                 decoration: BoxDecoration(
-                                  color: tab == item.index ? K.titleA : Colors.transparent,
+                                  color: item.highlight
+                                      ? const Color(0xFF1BAE67)
+                                      : (tab == item.index ? K.titleA : Colors.transparent),
                                   borderRadius: BorderRadius.circular(18),
                                 ),
                                 child: Icon(
                                   item.icon,
                                   size: 22,
-                                  color: tab == item.index ? Colors.white : K.titleA,
+                                  color: item.highlight
+                                      ? Colors.white
+                                      : (tab == item.index ? Colors.white : K.titleA),
                                 ),
                               ),
                             ),

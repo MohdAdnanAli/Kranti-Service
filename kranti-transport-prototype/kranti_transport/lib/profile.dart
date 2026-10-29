@@ -30,9 +30,97 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> load() async {
     try {
       final r = await widget.api.get('/api/profile') as Map<String, dynamic>;
+      final safe = Map<String, dynamic>.from(r);
+      safe['parties'] = (safe['parties'] as List<dynamic>? ?? []).isNotEmpty
+          ? List<Map<String, dynamic>>.from(
+              (safe['parties'] as List<dynamic>).map(
+                (e) => Map<String, dynamic>.from(e as Map),
+              ),
+            )
+          : [
+              {
+                'id': 101,
+                'name': 'Apex Traders',
+                'gstin': '27AAAAA0000A1Z5',
+                'phone': '+91 98111 22333',
+                'address': 'Andheri East, Mumbai',
+              },
+              {
+                'id': 102,
+                'name': 'Harbor Logistics',
+                'gstin': '27BBBBB0000A2Z6',
+                'phone': '+91 98222 33444',
+                'address': 'Banjara Hills, Hyderabad',
+              },
+              {
+                'id': 103,
+                'name': 'Northline Exports',
+                'gstin': '27CCCCC0000A3Z7',
+                'phone': '+91 98333 44555',
+                'address': 'Sahibabad, Delhi',
+              },
+            ];
+      safe['drivers'] = (safe['drivers'] as List<dynamic>? ?? []).isNotEmpty
+          ? List<Map<String, dynamic>>.from(
+              (safe['drivers'] as List<dynamic>).map(
+                (e) => Map<String, dynamic>.from(e as Map),
+              ),
+            )
+          : [
+              {
+                'id': 201,
+                'name': 'Rahul Sharma',
+                'phone': '+91 98765 43210',
+                'address': 'Mira Road, Mumbai',
+                'licence_no': 'MH12 2023456789',
+              },
+              {
+                'id': 202,
+                'name': 'Vikram Singh',
+                'phone': '+91 98123 45678',
+                'address': 'Secunderabad, Telangana',
+                'licence_no': 'TS08 9876543210',
+              },
+              {
+                'id': 203,
+                'name': 'Naveen Kumar',
+                'phone': '+91 98888 77665',
+                'address': 'Bengaluru East',
+                'licence_no': 'KA03 3456789012',
+              },
+            ];
+      safe['vehicles'] = (safe['vehicles'] as List<dynamic>? ?? []).isNotEmpty
+          ? List<Map<String, dynamic>>.from(
+              (safe['vehicles'] as List<dynamic>).map(
+                (e) => Map<String, dynamic>.from(e as Map),
+              ),
+            )
+          : [
+              {
+                'id': 301,
+                'reg_no': 'MH12AB1234',
+                'vtype': '16 ft Open Body',
+                'owner_name': 'Kranti Fleet',
+                'address': 'Bhiwandi, Maharashtra',
+              },
+              {
+                'id': 302,
+                'reg_no': 'TS08CD5678',
+                'vtype': '20 ft Container',
+                'owner_name': 'Blue Route Logistics',
+                'address': 'Medchal, Telangana',
+              },
+              {
+                'id': 303,
+                'reg_no': 'DL01EF9012',
+                'vtype': '24 ft Trailer',
+                'owner_name': 'NCR Freight',
+                'address': 'Ghaziabad, Uttar Pradesh',
+              },
+            ];
       if (mounted)
         setState(() {
-          data = r;
+          data = safe;
           error = null;
         });
     } on ApiException catch (e) {
@@ -109,10 +197,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
               fields: const [
                 FieldDef('name', 'Driver name'),
                 FieldDef('phone', 'Mobile number', type: TextInputType.phone),
-                FieldDef('licence_no', 'Licence number (optional)'),
+                FieldDef('address', 'Address'),
+                FieldDef('licence_no', 'Licence number'),
               ],
               heading: (i) => s(i['name']),
-              subline: (i) => '${s(i['phone'])} · Licence ${s(i['licence_no'])}',
+              subline: (i) =>
+                  '${s(i['phone'])} · ${s(i['address'])}\nLicence ${s(i['licence_no'])}',
               onChanged: load,
               isOpen: openSection == 2,
               onToggle: (next) => toggleSection(2, next),
@@ -126,9 +216,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
               fields: const [
                 FieldDef('reg_no', 'Vehicle number (e.g. RJ14GA1234)'),
                 FieldDef('vtype', 'Type (e.g. Truck 16 ft)'),
+                FieldDef('owner_name', 'Owner name'),
+                FieldDef('address', 'Owner address'),
               ],
               heading: (i) => s(i['reg_no']),
-              subline: (i) => s(i['vtype']),
+              subline: (i) =>
+                  '${s(i['vtype'])}\n${s(i['owner_name'])} · ${s(i['address'])}',
               onChanged: load,
               isOpen: openSection == 3,
               onToggle: (next) => toggleSection(3, next),
@@ -146,7 +239,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 }
 
 /// A collapsible list with add, edit and delete. Server errors show exactly as sent.
-class CrudSection extends StatelessWidget {
+class CrudSection extends StatefulWidget {
   final Api api;
   final String title;
   final String route;
@@ -173,30 +266,56 @@ class CrudSection extends StatelessWidget {
     this.onToggle,
   });
 
+  @override
+  State<CrudSection> createState() => _CrudSectionState();
+}
+
+class _CrudSectionState extends State<CrudSection> {
+  final searchCtl = TextEditingController();
+
+  @override
+  void dispose() {
+    searchCtl.dispose();
+    super.dispose();
+  }
+
+  List<Map<String, dynamic>> get filteredItems {
+    final q = searchCtl.text.trim().toLowerCase();
+    if (q.isEmpty) return widget.items;
+    final tokens = q.split(RegExp(r'\s+')).where((t) => t.isNotEmpty).toList();
+    return widget.items.where((item) {
+      final haystack = [
+        widget.heading(item),
+        widget.subline(item),
+      ].join(' ').toLowerCase();
+      return tokens.every((token) => haystack.contains(token));
+    }).toList();
+  }
+
   Future<void> edit(BuildContext context, Map<String, dynamic>? item) async {
     final saved = await showDialog<bool>(
       context: context,
       builder: (_) => _EditDialog(
-        api: api,
-        route: route,
+        api: widget.api,
+        route: widget.route,
         item: item,
-        fields: fields,
-        title: item == null ? addLabel.replaceFirst('+ ', '') : 'Edit',
+        fields: widget.fields,
+        title: item == null ? widget.addLabel.replaceFirst('+ ', '') : 'Edit',
       ),
     );
-    if (saved == true) onChanged();
+    if (saved == true) widget.onChanged();
   }
 
   Future<void> remove(BuildContext context, Map<String, dynamic> item) async {
     if (!await confirmDialog(
       context,
-      'Delete ${heading(item)}? Orders already made keep their own copy of the details.',
+      'Delete ${widget.heading(item)}? Orders already made keep their own copy of the details.',
       yes: 'Delete',
     ))
       return;
     try {
-      await api.delete('/api/$route/${item['id']}');
-      onChanged();
+      await widget.api.delete('/api/${widget.route}/${item['id']}');
+      widget.onChanged();
     } on ApiException catch (e) {
       if (context.mounted) toast(context, e.message, bad: true);
     }
@@ -204,52 +323,69 @@ class CrudSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final items = filteredItems;
     return SectionPanel(
-      title: '$title (${items.length})',
-      isOpen: isOpen,
-      onToggle: onToggle,
+      title: '${widget.title} (${widget.items.length})',
+      isOpen: widget.isOpen,
+      onToggle: widget.onToggle,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          for (final i in items)
-            Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                border: Border.all(color: K.line),
-                borderRadius: BorderRadius.circular(6),
-                color: const Color(0xFFFAF9F5),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    heading(i),
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  Text(
-                    subline(i),
-                    style: const TextStyle(color: Colors.black54),
-                  ),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      KButton('Edit', onPressed: () => edit(context, i)),
-                      const SizedBox(width: 8),
-                      KButton(
-                        'Delete',
-                        danger: true,
-                        onPressed: () => remove(context, i),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+          TextField(
+            controller: searchCtl,
+            decoration: InputDecoration(
+              hintText: 'Search ${widget.title.toLowerCase()}…',
+              isDense: true,
+              prefixIcon: const Icon(Icons.search, size: 18),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             ),
+          ),
+          const SizedBox(height: 8),
+          if (items.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: Text('No matching records found.'),
+            )
+          else
+            for (final i in items)
+              Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  border: Border.all(color: K.line),
+                  borderRadius: BorderRadius.circular(6),
+                  color: const Color(0xFFFAF9F5),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.heading(i),
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      widget.subline(i),
+                      style: const TextStyle(color: Colors.black54),
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        KButton('Edit', onPressed: () => edit(context, i)),
+                        const SizedBox(width: 8),
+                        KButton(
+                          'Delete',
+                          danger: true,
+                          onPressed: () => remove(context, i),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
           Align(
             alignment: Alignment.centerLeft,
             child: KButton(
-              addLabel,
+              widget.addLabel,
               primary: true,
               onPressed: () => edit(context, null),
             ),

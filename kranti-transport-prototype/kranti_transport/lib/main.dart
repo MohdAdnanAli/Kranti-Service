@@ -44,6 +44,18 @@ class _KrantiAppState extends State<KrantiApp> {
     return MaterialApp(
       title: 'Kranti Transport',
       debugShowCheckedModeBanner: false,
+      builder: (context, child) {
+        return Stack(
+          children: [
+            if (child != null) child,
+            const Positioned.fill(
+              child: IgnorePointer(
+                child: DemoSecurityOverlay(),
+              ),
+            ),
+          ],
+        );
+      },
       theme: ThemeData(
         useMaterial3: true,
         scaffoldBackgroundColor: K.teal,

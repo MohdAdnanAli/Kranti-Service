@@ -79,20 +79,20 @@ class DemoSecurityOverlay extends StatelessWidget {
     return Positioned.fill(
       child: IgnorePointer(
         child: Opacity(
-          opacity: 0.08,
+          opacity: 0.18,
           child: Transform.rotate(
-            angle: -0.42,
+            angle: -0.48,
             child: Center(
               child: Text(
                 'PRE-DEV DEMO\nNO SCREENSHOTS\nPRIVATE DATA ONLY',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 28,
+                  fontSize: 32,
                   fontWeight: FontWeight.w900,
-                  letterSpacing: 2,
-                  color: const Color(0xFF0B3A5C).withValues(alpha: 0.72),
+                  letterSpacing: 2.4,
+                  color: const Color(0xFF0B3A5C).withValues(alpha: 0.8),
                   shadows: const [
-                    Shadow(color: Color(0x33000000), blurRadius: 12),
+                    Shadow(color: Color(0x66000000), blurRadius: 18),
                   ],
                 ),
               ),
@@ -260,7 +260,7 @@ class KButton extends StatelessWidget {
               end: Alignment.bottomCenter,
               colors: colors,
             ),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(14),
             border: Border.all(
               color: primary || danger ? const Color(0xFF1B3A5C) : K.line,
             ),
@@ -273,20 +273,21 @@ class KButton extends StatelessWidget {
             ],
           ),
           child: InkWell(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(14),
             onTap: onPressed,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
               child: Text(
                 label,
                 textAlign: TextAlign.center,
-                style: TextStyle(fontWeight: FontWeight.w600, color: fg),
+                style: TextStyle(fontWeight: FontWeight.w700, color: fg),
               ),
             ),
           ),
         ),
       ),
     );
+    return wide ? SizedBox(width: double.infinity, child: button) : button;
     return wide ? SizedBox(width: double.infinity, child: button) : button;
   }
 }
